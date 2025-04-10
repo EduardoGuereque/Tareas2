@@ -1,0 +1,297 @@
+import java.awt.EventQueue;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Toolkit;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import java.util.Timer;
+
+import java.awt.Color;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.Random;
+import java.util.TimerTask;
+
+import javax.swing.JLabel;
+import java.awt.Font;
+
+public class Main {
+
+    private JFrame frame;
+    private PaintPanel paintPanel;
+    private Player player;
+    private Enemy[] enemies;
+    private Random random = new Random();
+    Timer cronometro;
+    JLabel timer;
+    int segundos = 0;
+    int velocidad = 50;
+
+    public static void main(String[] args) {
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    Main window = new Main();
+                    window.frame.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public Main() {
+        initialize();
+    }
+    
+    class Player {
+        private int x;
+        private int y;
+        private int size;
+        private Color colorin;
+        private int dx = 0;
+        private int dy = 0;
+        
+        public Player(int x, int y, int size, Color color) {
+            this.x = x;
+            this.y = y;
+            this.size = size;
+            this.colorin = color;
+            
+        }
+        
+        public void direccion(int dx, int dy) {
+            this.dx = dx;
+            this.dy = dy;
+        }
+
+        public void update() {
+            move(dx, dy);
+        }
+        
+        public void move(int dx, int dy) {
+            x += dx;
+            y += dy;
+          
+            if (y >= 486)
+            	y = 1;
+            else if (y <= 0)
+            	y = 485;
+            else if (x >= 701)
+            	x = 1;
+            else if (x <= 0)
+            	x = 700;
+        }
+        
+        public void reset() {
+            x = 200;
+            y = 200;
+            colorin = Color.RED;
+            segundos = 0;
+            timer.setText("00:00");
+        }
+        
+        public void colorin() {
+            colorin = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
+        }
+        
+        public void draw(Graphics2D g2) {
+            g2.setColor(colorin);
+            g2.fillRect(x, y, size, size);
+        }
+        
+        public int getX() 
+        { 
+        	return x; 
+        }
+        public int getY() 
+        { 
+        	return y;
+        }
+        public int getSize() 
+        { 
+        	return size;
+        }
+        
+    }
+
+    class Enemy {
+        private int x;
+        private int y;
+        private int w;
+        private int h;
+        private Color color;
+        
+        public Enemy(int x, int y, int width, int height, Color color) {
+            this.x = x;
+            this.y = y;
+            this.w = width;
+            this.h = height;
+            this.color = color;
+        }
+        
+        public void draw(Graphics2D g2) {
+            g2.setColor(color);
+            g2.fillRect(x, y, w, h);
+        }
+        
+        public boolean colisiona(Player player) {
+            return player.getX() < x + w &&
+                   player.getX() + player.getSize() > x &&
+                   player.getY() < y + h &&
+                   player.getY() + player.getSize() > y;
+        }
+    }
+
+    private void initialize() {
+        frame = new JFrame();
+        frame.setBounds(150, 50, 715, 600);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.getContentPane().setLayout(null);
+        Image icon = Toolkit.getDefaultToolkit().getImage(getClass().getResource("recursos/22212-monkey-icon.png"));
+    	frame.setIconImage(icon);
+        
+        
+        player = new Player(200, 200, 20, Color.RED);
+        enemies = new Enemy[5];
+        
+        for (int i = 0; i < enemies.length; i++) {
+            int x = random.nextInt(600);
+            int y = random.nextInt(400);
+            int w2 = 30 + random.nextInt(70);
+            int h2 = 20 + random.nextInt(30);
+            enemies[i] = new Enemy(x, y, w2, h2, Color.BLACK);
+        }
+
+        paintPanel = new PaintPanel();
+        paintPanel.setBounds(0, 39, 701, 486);
+        frame.getContentPane().add(paintPanel);
+        
+        JPanel panel_1 = new JPanel();
+        panel_1.setBounds(0, 0, 701, 39);
+        panel_1.setBackground(new Color(153, 204, 255));
+        frame.getContentPane().add(panel_1);
+        panel_1.setLayout(null);
+        
+        timer = new JLabel("00:00");
+        timer.setFont(new Font("Tahoma", Font.BOLD, 17));
+        timer.setBounds(329, 11, 56, 17);
+        panel_1.add(timer);
+        
+        JPanel panel_2 = new JPanel();
+        panel_2.setBounds(0, 524, 701, 39);
+        panel_2.setBackground(new Color(153, 204, 255));
+        frame.getContentPane().add(panel_2);
+        panel_2.setLayout(null);
+        
+        JLabel lblNewLabel_1 = new JLabel("Presiona \"Z\" para reiniciar");
+        lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 15));
+        lblNewLabel_1.setBounds(255, 11, 204, 17);
+        panel_2.add(lblNewLabel_1);
+        
+        segundos = 0;
+        timer.setText("00:00");
+        cronometro = new Timer();
+        cronometro.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                segundos++;
+                int minutos = segundos / 60;
+                int segundosRestantes = segundos % 60;
+                timer.setText(String.format("%02d:%02d", minutos, segundosRestantes));
+            }
+        }, 0, 1000);
+        
+        Timer cronometro2 = new Timer();
+        cronometro2.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                player.update();
+                paintPanel.repaint();
+
+                for (Enemy enemy : enemies) {
+                    if (enemy.colisiona(player)) {
+                        player.direccion(0, 0);
+                        break;
+                    }
+                }
+            }
+        }, 0, 30);
+    }
+
+    class PaintPanel extends JPanel {
+        public PaintPanel() {
+            this.setBackground(new Color(228, 228, 228));
+            this.setFocusable(true);
+            this.requestFocusInWindow();
+            this.setLayout(null);
+            
+            this.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    int tecla = e.getKeyCode();
+                    int mov = 5;
+                    
+                    int oldX = player.getX();
+                    int oldY = player.getY();
+                    
+                    switch (tecla) {
+                        case KeyEvent.VK_W:
+                        case KeyEvent.VK_UP:
+                            player.direccion(0, -5);
+                            break;
+                        case KeyEvent.VK_S:
+                        case KeyEvent.VK_DOWN:
+                            player.direccion(0, 5);
+                            break;
+                        case KeyEvent.VK_A:
+                        case KeyEvent.VK_LEFT:
+                            player.direccion(-5, 0);
+                            break;
+                        case KeyEvent.VK_D:
+                        case KeyEvent.VK_RIGHT:
+                            player.direccion(5, 0);
+                            break;
+                        case KeyEvent.VK_SPACE:
+                            player.colorin();
+                            break;
+                        case KeyEvent.VK_Z:
+                            player.reset();
+                            player.direccion(0, 0);
+                            break;
+                        case KeyEvent.VK_SHIFT:
+                            
+                            break;
+
+                    }
+
+                    player.update();
+                    
+                    for (Enemy enemy : enemies) {
+                        if (enemy.colisiona(player)) {
+                            player.move(oldX - player.getX(), oldY - player.getY());
+                            player.direccion(0, 0);
+                            break;
+                        }
+                    }
+                    
+                    repaint();
+                }
+            });
+        }
+        
+        @Override
+        public void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            
+            player.draw(g2);
+            
+            for (Enemy enemy : enemies) {
+                enemy.draw(g2);
+            }
+        }
+    }
+}
